@@ -1,16 +1,25 @@
-FROM python:3.10 AS builder
+FROM ubuntu:23.04
 
-RUN apt update && apt install -y libncurses5
+ARG VERSION_RUST="nightly-2023-12-26"
+ARG VERISON_MXPY="9.2.0"
+
+RUN apt-get update && apt-get install -y \
+    wget \
+    libssl-dev \
+    build-essential  \
+    pkg-config \
+    python3 \
+    python3.11-venv \
+    python3-pip
 
 RUN useradd -m mx
 WORKDIR /home/mx
 
 USER mx
 
-FROM builder
+ENV PATH="/home/mx/multiversx-sdk:/home/mx/.cargo/bin:${PATH}"
 
-RUN wget -O mxpy-up.py https://raw.githubusercontent.com/multiversx/mx-sdk-py-cli/main/mxpy-up.py
-RUN pip3 install wheel
-RUN python mxpy-up.py --not-interactive --verbose
+RUN wget -O mxpy-up.py https://raw.githubusercontent.com/multiversx/mx-sdk-py-cli/main/mxpy-up.py &&  \
+    python3 mxpy-up.py --not-interactive --verbose --exact-version ${VERISON_MXPY}
 
-ENV PATH="/home/mx/multiversx-sdk:${PATH}"
+RUN mxpy config set dependencies.rust.tag ${VERSION_RUST} && mxpy deps install rust
